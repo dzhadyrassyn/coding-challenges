@@ -1,0 +1,1 @@
+./build/install/custom-wc/bin/custom-wc "$@"
