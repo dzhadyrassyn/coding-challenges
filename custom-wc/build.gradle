@@ -22,7 +22,7 @@ compileJava {
 }
 
 application {
-    mainClass = 'dzhadyrassyn.coding.challenges.customwc/CheckSum'
+    mainClass = 'dzhadyrassyn.coding.challenges.customwc.Application'
 }
 
 test {
