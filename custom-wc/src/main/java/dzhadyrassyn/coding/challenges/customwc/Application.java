@@ -5,10 +5,10 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 @Command(
@@ -19,57 +19,48 @@ import java.util.concurrent.Callable;
 )
 public class Application implements Callable<Integer> {
 
-    @Option(names = {"-c"}, description = "The file whose byte to count")
+    @Option(names = "-c", description = "The file whose byte to count")
     private File bytesCountFile;
 
-    @Option(names = {"-l"}, description = "The file whose lines to count")
+    @Option(names = "-l", description = "The file whose lines to count")
     private File linesCountFile;
 
-    @Option(names = {"-w"}, description = "The file whose words to count")
+    @Option(names = "-w", description = "The file whose words to count")
     private File wordsCountFile;
 
-    @Option(names = {"-m"}, description = "The file whose characters to count")
+    @Option(names = "-m", description = "The file whose characters to count")
     private File characterCountFile;
 
-//    @Parameters(index = "0", description = "The file whose bytes, lines, words to count")
-//    private File parameterFile;
+    @Parameters(index = "0", description = "The file whose bytes, lines, words to count")
+    private File parameterFile;
 
     @Override
     public Integer call() throws Exception {
-        if (bytesCountFile != null) {
-            validateFile(bytesCountFile);
-            long bytesCount = bytesCountFile.length();
-            System.out.printf("%d\t%s\n", bytesCount, bytesCountFile.getName());
-        }
-        if (linesCountFile != null) {
-            validateFile(linesCountFile);
-            BufferedReader reader = new BufferedReader(new FileReader(linesCountFile));
-            long cnt = reader.lines().count();
-            System.out.printf("%d\t%s\n", cnt, linesCountFile.getName());
-        }
-        if (wordsCountFile != null) {
-            validateFile(wordsCountFile);
-            BufferedReader reader = new BufferedReader(new FileReader(wordsCountFile));
-            long cnt = 0;
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String trim = line.trim();
-                if (!trim.isEmpty()) {
-                    cnt += trim.split("\\s+").length;
-                }
+
+        validateFiles();
+
+        if (parameterFile != null) {
+            for(Counter counter: Arrays.asList(new BytesCounter(parameterFile), new LinesCounter(parameterFile), new WordsCounter(parameterFile))) {
+                counter.print(counter.count());
             }
-            System.out.printf("%d\t%s\n", cnt, wordsCountFile.getName());
         }
-        if (characterCountFile != null) {
-            validateFile(characterCountFile);
-            BufferedReader reader = new BufferedReader(new FileReader(wordsCountFile));
-            long cnt = 0;
-            while(reader.read() != -1) {
-                ++cnt;
+
+        for(Counter counter: Arrays.asList(new BytesCounter(bytesCountFile), new LinesCounter(linesCountFile), new WordsCounter(wordsCountFile), new CharactersCounter(characterCountFile))) {
+            if (counter.getFile() != null) {
+                counter.print(counter.count());
             }
-            System.out.printf("%d\t%s\n", cnt, characterCountFile.getName());
         }
+
         return 0;
+    }
+
+    private void validateFiles() throws IllegalAccessException, FileNotFoundException {
+        for (Field field : getClass().getDeclaredFields()) {
+            File file = (File)field.get(this);
+            if (file != null) {
+                validateFile(file);
+            }
+        }
     }
 
     private void validateFile(File file) throws FileNotFoundException {
